@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Payment</title>
+
+  <!-- Razorpay Checkout -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+
+<body>
+
+  <h2>Pay ₹500</h2>
+  <button onclick="payNow()">Pay Now</button>
+
+ <script>
+async function payNow() {
+  alert("Button clicked");
+
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5M2ZkYmU0ODgzNmVjY2ViN2MwMjhiNyIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTgyNjYwMCwiZXhwIjoxNzY1ODMwMjAwfQ.bKjR7PYb3UHCnwm_kXodOdLkDgZyd1PksVOKP_6v-dM";
+
+  const res = await fetch("http://localhost:5000/api/payment/create-order", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ amount: 500 })
+  });
+
+  const order = await res.json();
+  console.log("ORDER RESPONSE:", order);
+
+  if (!order.id) {
+    alert("Order ID missing ❌");
+    return;
+  }
+
+  const options = {
+    key: "rzp_test_RryXvudqwrodRl", // MUST start with rzp_test_
+    amount: order.amount,
+    currency: "INR",
+    name: "General Store",
+    description: "Order Payment",
+    order_id: order.id,
+     handler: async function (response) {
+      // ✅ THIS IS THE PART YOU ASKED ABOUT
+      await fetch("http://localhost:5000/api/payment/verify-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_LOGIN_TOKEN_HERE"
+        },
+        body: JSON.stringify({
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature,
+          orderId: "694011a29bd016d383bdf2ce"
+        })
+      });
+
+      alert("Payment successful & order confirmed!");
+    }
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
+</script>
