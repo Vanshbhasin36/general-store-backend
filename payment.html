@@ -13,57 +13,78 @@
   <h2>Pay ₹500</h2>
   <button onclick="payNow()">Pay Now</button>
 
- <script>
+<script>
 async function payNow() {
-  alert("Button clicked");
+  try {
+    alert("Button clicked");
 
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5M2ZkYmU0ODgzNmVjY2ViN2MwMjhiNyIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc2NTgyNjYwMCwiZXhwIjoxNzY1ODMwMjAwfQ.bKjR7PYb3UHCnwm_kXodOdLkDgZyd1PksVOKP_6v-dM";
+    // ✅ TOKEN FROM LOGIN API
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5NDE5ZTM3ZjI3NjZhNjhhOTI1MmQ1NCIsInJvbGUiOiJjdXN0b21lciIsImlhdCI6MTc2NTkwOTU1MywiZXhwIjoxNzY1OTEzMTUzfQ.XaPVeylBQXz7v794XxmkjkvpEBZJ-syjyuCSv1uJsb4";
 
-  const res = await fetch("http://localhost:5000/api/payment/create-order", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify({ amount: 500 })
-  });
-
-  const order = await res.json();
-  console.log("ORDER RESPONSE:", order);
-
-  if (!order.id) {
-    alert("Order ID missing ❌");
-    return;
-  }
-
-  const options = {
-    key: "rzp_test_RryXvudqwrodRl", // MUST start with rzp_test_
-    amount: order.amount,
-    currency: "INR",
-    name: "General Store",
-    description: "Order Payment",
-    order_id: order.id,
-     handler: async function (response) {
-      // ✅ THIS IS THE PART YOU ASKED ABOUT
-      await fetch("http://localhost:5000/api/payment/verify-payment", {
+    // ✅ STEP 1: CREATE ORDER (BACKEND)
+    const res = await fetch(
+      "https://general-store-backend.onrender.com/api/payment/create-order",
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer YOUR_LOGIN_TOKEN_HERE"
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_signature: response.razorpay_signature,
-          orderId: "694011a29bd016d383bdf2ce"
-        })
-      });
+        body: JSON.stringify({ amount: 500 })
+      }
+    );
 
-      alert("Payment successful & order confirmed!");
+    if (!res.ok) {
+      throw new Error("Order creation failed");
     }
-  };
 
-  const rzp = new Razorpay(options);
-  rzp.open();
+    const order = await res.json();
+    console.log("ORDER:", order);
+
+    // ✅ STEP 2: OPEN RAZORPAY POPUP
+    const options = {
+      key: "rzp_test_RryXvudqwrodRl", // Razorpay TEST key
+      amount: order.amount,
+      currency: "INR",
+      name: "General Store",
+      description: "Order Payment",
+      order_id: order.id,
+
+      handler: async function (response) {
+        console.log("PAYMENT RESPONSE:", response);
+
+        // ✅ STEP 3: VERIFY PAYMENT (BACKEND)
+        const verifyRes = await fetch(
+          "https://general-store-backend.onrender.com/api/payment/verify-payment",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: "694011a29bd016d383bdf2ce" // YOUR DB ORDER ID
+            })
+          }
+        );
+
+        const data = await verifyRes.json();
+        alert(data.message);
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+
+  } catch (error) {
+    console.error(error);
+    alert("Payment failed ❌");
+  }
 }
 </script>
+
+</body>
+</html>
