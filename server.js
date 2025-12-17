@@ -11,19 +11,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// DB
+// connect database
 connectDB();
 
-// ROUTES (THIS WAS THE ISSUE)
+// ROUTES — THIS IS THE FIX
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/payment", require("./routes/paymentRoutes"));
 
-// test route
+// root test
 app.get("/", (req, res) => {
-  res.send("General Store Backend Running 🚀");
+  res.send("Backend is live 🚀");
 });
 
 const PORT = process.env.PORT || 5000;

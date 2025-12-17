@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const express = require("express");
+console.log("✅ authRoutes loaded");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
